@@ -4,22 +4,16 @@ import {
   MinLength,
   IsNumber,
   Min,
-  IsEnum,
   IsArray,
   IsUrl,
-  IsEmail,
   Matches,
   Max,
 } from 'class-validator';
-import {
-  ProductCategory,
-  ProductStatus,
-} from '../interfaces/product.interface';
 
 export class CreateProductDTO {
   @IsString({ message: 'Name must be a text string.' })
   @MinLength(3, { message: 'Name must be at least 3 characters long.' })
-  name!: string;
+  title!: string;
 
   @IsString({ message: 'Description must be a text string.' })
   @MinLength(10, {
@@ -40,10 +34,8 @@ export class CreateProductDTO {
   @Min(5, { message: 'Stock must be at least 5.' })
   stock!: number;
 
-  @IsEnum(ProductCategory, {
-    message: `Category must be one of the following valid options: ${Object.values(ProductCategory).join(', ')}`,
-  })
-  category!: ProductCategory;
+  @IsString({ message: 'Category must be a text string.' })
+  category!: string;
 
   @IsArray({ message: 'Product images must be provided as a list (array).' })
   @IsUrl(
@@ -51,26 +43,4 @@ export class CreateProductDTO {
     { each: true, message: 'Each product image must be a valid URL string.' },
   )
   productImages!: string[];
-
-  @IsEnum(ProductStatus, {
-    message: `Status must be one of the following valid options: ${Object.values(ProductStatus).join(', ')}`,
-  })
-  status!: ProductStatus;
-
-  @IsEmail(
-    {},
-    {
-      message:
-        'Vendor email must be a valid email address structure (e.g., user@domain.com).',
-    },
-  )
-  vendorEmail!: string;
-
-  @IsString({ message: 'Vendor name must be a text string.' })
-  @MinLength(2, { message: 'Vendor name must be at least 2 characters long.' })
-  @Matches(/^[a-zA-Z\s.-]+$/, {
-    message:
-      'Vendor name can only contain letters, spaces, hyphens, and periods.',
-  })
-  vendorName!: string;
 }
