@@ -1,9 +1,11 @@
+import { UserRole } from '@/src/users/enums/user-role.enum';
 import {
   IsEmail,
   IsNotEmpty,
   IsString,
   MinLength,
   MaxLength,
+  IsIn,
 } from 'class-validator';
 
 export class SignupDTO {
@@ -21,4 +23,11 @@ export class SignupDTO {
   @MinLength(6, { message: 'Password must be at least 6 characters long' })
   @MaxLength(100, { message: 'Password must not exceed 100 characters' })
   password!: string;
+
+  @IsString({ message: 'Role must be a string' })
+  @IsNotEmpty({ message: 'Role is required' })
+  @IsIn([UserRole.USER, UserRole.VENDOR], {
+    message: 'Role must be either user or vendor',
+  })
+  role!: UserRole;
 }

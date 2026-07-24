@@ -1,20 +1,44 @@
-import { Injectable } from '@nestjs/common';
-import { User } from './interfaces/user.interface';
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { User } from './entities/user.entity';
+import { DeepPartial, Repository } from 'typeorm';
 
 @Injectable()
 export class UsersService {
-  private users: User[] = [];
+  constructor(
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
+  ) {}
 
-  findByEmail(email: string): User | undefined {
-    return this.users.find((user) => user.email === email);
+  async findByEmail(email: string): Promise<User | null> {
+    return await this.userRepository.findOne({ where: { email } });
   }
 
-  findById(id: string): User | undefined {
-    return this.users.find((user) => user.id === id);
+  async findById(id: string): Promise<User | null> {
+    return await this.userRepository.findOneBy({ id: Number(id) });
   }
 
-  create(user: User): User {
-    this.users.push(user);
-    return user;
+  async create(user: DeepPartial<User>): Promise<User> {
+    const newUser = this.userRepository.create(user);
+    return await this.userRepository.save(newUser);
+  }
+
+  async getAllUsers(): Promise<User[]> {
+    return await this.userRepository.find();
+  }
+
+  async toggleBlockUser(id: string): Promise<User> {
+    const user = await this.findById(id);
+    if (!user) {
+      throw new NotFoundException(`User with id:${id} not found`);
+    }
+    user.isBlocked = !user.isBlocked;
+    return await this.userRepository.save(user);
+  }
+
+  async deleteUser(id: string) {
+    const user = await this.findById(id);
+    if (!user) throw new NotFoundException(`User with id:${id} not found`);
+    return this.userRepository.remove(user);
   }
 }

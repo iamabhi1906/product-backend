@@ -11,7 +11,6 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ProductsService } from './products.service';
-import { type Product } from './interfaces/product.interface';
 import { CreateProductDTO } from './dto/create-product.dto';
 import { UpdateProductDTO } from './dto/update-product.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt.guard';
@@ -24,47 +23,51 @@ export class ProductsController {
 
   @Post()
   @UseGuards(JwtAuthGuard)
-  createProduct(
+  async createProduct(
     @Req() request: AuthenticatedRequest,
     @Body() payload: CreateProductDTO,
-  ): Product {
-    return this.productsService.createProduct(request.user.sub, payload);
+  ) {
+    return await this.productsService.createProduct(request.user.sub, payload);
   }
 
   @Get()
-  findAllPublished() {
-    return this.productsService.findAllPublished();
+  async findAllPublished() {
+    return await this.productsService.findAllPublished();
   }
 
   @Get('me')
   @UseGuards(JwtAuthGuard)
-  findMyProducts(@Req() request: AuthenticatedRequest) {
-    return this.productsService.findMyProducts(request.user.sub);
+  async findMyProducts(@Req() request: AuthenticatedRequest) {
+    return await this.productsService.findMyProducts(request.user.sub);
   }
 
   @Get(':id')
-  findPublishedById(@Param('id') id: string) {
-    return this.productsService.findPublishedById(id);
+  async findPublishedById(@Param('id') id: string) {
+    return await this.productsService.findPublishedById(id);
   }
 
   @Put(':id')
   @UseGuards(JwtAuthGuard)
-  updateProduct(
+  async updateProduct(
     @Req() request: AuthenticatedRequest,
     @Body() payload: UpdateProductDTO,
     @Param('id') id: string,
-  ): Product {
-    return this.productsService.updateProduct(id, request.user.sub, payload);
+  ) {
+    return await this.productsService.updateProduct(
+      id,
+      request.user.sub,
+      payload,
+    );
   }
 
   @Patch(':id/status')
   @UseGuards(JwtAuthGuard)
-  updateProductStatus(
+  async updateProductStatus(
     @Param('id') id: string,
     @Req() request: AuthenticatedRequest,
     @Body() dto: UpdateProductStatusDTO,
   ) {
-    return this.productsService.updateProductStatus(
+    return await this.productsService.updateProductStatus(
       id,
       request.user.sub,
       dto.status,
@@ -73,8 +76,11 @@ export class ProductsController {
 
   @Delete(':id')
   @UseGuards(JwtAuthGuard)
-  deleteProduct(@Req() request: AuthenticatedRequest, @Param('id') id: string) {
-    this.productsService.deleteProduct(id, request.user.sub);
+  async deleteProduct(
+    @Req() request: AuthenticatedRequest,
+    @Param('id') id: string,
+  ) {
+    await this.productsService.deleteProduct(id, request.user.sub);
     return {
       status: 'success',
       message: `Product with id:${id} deleted successfully`,

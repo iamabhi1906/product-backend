@@ -3,121 +3,150 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
-import { Product } from './interfaces/product.interface';
 import { CreateProductDTO } from './dto/create-product.dto';
 import { UpdateProductDTO } from './dto/update-product.dto';
 import { ProductStatus } from './enums/product-status.enum';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Product } from './entities/product.entity';
+import { Repository } from 'typeorm';
 
 @Injectable()
 export class ProductsService {
-  protected products: Product[] = [];
+  constructor(
+    @InjectRepository(Product)
+    private readonly productRepository: Repository<Product>,
+  ) {}
 
-  findAllPublished(): Product[] {
-    return this.products.filter(
-      (product) => product.status === ProductStatus.PUBLISHED,
-    );
+  async getAllProducts(): Promise<Product[]> {
+    return await this.productRepository.find();
   }
 
-  findMyProducts(ownerId: string): Product[] {
-    return this.products.filter((product) => product.ownerId === ownerId);
+  async getProductById(id: string): Promise<Product> {
+    const product = await this.productRepository.findOne({
+      where: { id: Number(id) },
+    });
+    if (!product)
+      throw new NotFoundException(`Product with id:${id} not found`);
+    return product;
   }
 
-  findPublishedById(id: string): Product {
-    const product = this.products.find(
-      (product) =>
-        product.id === id && product.status === ProductStatus.PUBLISHED,
-    );
+  async findAllPublished(): Promise<Product[]> {
+    return await this.productRepository.find({
+      where: { status: ProductStatus.PUBLISHED },
+      relations: { user: true },
+      select: {
+        id: true,
+        title: true,
+        price: true,
+        category: true,
+        user: {
+          name: true,
+          email: true,
+        },
+      },
+    });
+  }
+
+  async findPublishedById(id: string): Promise<Product> {
+    const product = await this.productRepository.findOne({
+      where: { id: Number(id) },
+      relations: { user: true },
+      select: {
+        id: true,
+        title: true,
+        price: true,
+        category: true,
+        user: {
+          name: true,
+          email: true,
+        },
+      },
+    });
     if (!product) {
       throw new NotFoundException('Product not found');
     }
     return product;
   }
 
-  getProduct(id: string): Product {
-    const product = this.products.find((product) => product.id === id);
-    if (!product)
-      throw new NotFoundException(`Product with id ${id} not found`);
-    return product;
+  async findMyProducts(userId: string): Promise<Product[]> {
+    return await this.productRepository.find({
+      where: { userId: Number(userId) },
+    });
   }
 
-  createProduct(ownerId: string, createProductDto: CreateProductDTO): Product {
-    const existingProduct = this.products.find(
-      (product) => product.title === createProductDto.title,
-    );
-    if (existingProduct)
+  async createProduct(
+    userId: string,
+    createProductDto: CreateProductDTO,
+  ): Promise<Product> {
+    const exists = await this.productRepository.existsBy({
+      title: createProductDto.title,
+      userId: Number(userId),
+    });
+    if (exists) {
       throw new ConflictException(
-        `Product with title ${createProductDto.title} already exists`,
+        `Product with title "${createProductDto.title}" already exists`,
       );
-    const newProduct: Product = {
-      id: crypto.randomUUID(),
+    }
+    const product = this.productRepository.create({
       ...createProductDto,
-      status: ProductStatus.DRAFT,
-      ownerId,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-    this.products.push(newProduct);
-    return newProduct;
+      userId: Number(userId),
+    });
+    return await this.productRepository.save(product);
   }
 
-  updateProduct(
+  async updateProduct(
     id: string,
-    ownerId: string,
+    userId: string,
     updateProductDto: UpdateProductDTO,
-  ): Product {
-    const product = this.getProduct(id);
-    if (product.ownerId !== ownerId)
-      throw new ForbiddenException(
-        'You are not authorized to update this product',
-      );
-
+  ): Promise<Product> {
     if (updateProductDto?.title) {
-      const existingProduct = this.products.find(
-        (product) =>
-          product.title === updateProductDto.title && product.id !== id,
-      );
-      if (existingProduct) {
+      const existingProduct = await this.productRepository.find({
+        where: { title: updateProductDto.title },
+      });
+      if (existingProduct.length > 0) {
         throw new ConflictException(
           `Product with title ${updateProductDto.title} already exists`,
         );
       }
     }
-
-    const index = this.products.findIndex((product) => product.id === id);
-    const updatedProduct: Product = {
-      ...product,
-      ...updateProductDto,
-      updatedAt: new Date(),
-    };
-    this.products[index] = updatedProduct;
-    return updatedProduct;
+    const product = await this.getProductById(id);
+    if (product.userId !== Number(userId))
+      throw new UnauthorizedException(
+        'You are not allowed to update this product',
+      );
+    Object.assign(product, updateProductDto);
+    return await this.productRepository.save(product);
   }
 
-  updateProductStatus(
+  async updateProductStatus(
     id: string,
-    ownerId: string,
+    userId: string,
     status: ProductStatus,
-  ): Product {
-    const product = this.getProduct(id);
-    if (product.ownerId !== ownerId)
+  ): Promise<Product> {
+    const product = await this.getProductById(id);
+    if (product.userId !== Number(userId))
       throw new ForbiddenException(
         'You are not authorized to change the status of this product',
       );
 
     product.status = status;
-    product.updatedAt = new Date();
-    return product;
+    return await this.productRepository.save(product);
   }
 
-  deleteProduct(id: string, ownerId: string): void {
-    const product = this.getProduct(id);
-    if (product.ownerId !== ownerId)
+  async deleteProduct(id: string, userId: string) {
+    const product = await this.getProductById(id);
+    if (product.userId !== Number(userId))
       throw new ForbiddenException(
         'You are not authorized to delete this product',
       );
-    const index = this.products.findIndex((product) => product.id === id);
+    return this.productRepository.remove(product);
+  }
 
-    this.products.splice(index, 1);
+  async adminDeleteProduct(id: string) {
+    const product = await this.getProductById(id);
+    if (product) throw new NotFoundException(`Product with id:${id} not found`);
+    return this.productRepository.remove(product);
   }
 }

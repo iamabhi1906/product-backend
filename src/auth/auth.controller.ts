@@ -11,7 +11,7 @@ import {
 import { AuthService } from './auth.service';
 import { SignupDTO } from './dto/signup.dto';
 import { LoginDTO } from './dto/login.dto';
-import { type Response, type Request } from 'express';
+import { type Response, type Request, CookieOptions } from 'express';
 import { JwtAuthGuard } from './guards/jwt.guard';
 import { type AuthenticatedRequest } from './interfaces/authenticated-request.interface';
 import { RolesGuard } from './guards/role.guard';
@@ -23,8 +23,8 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Post('/signup')
-  signup(@Body() signupDto: SignupDTO) {
-    const user = this.authService.signup(signupDto);
+  async signup(@Body() signupDto: SignupDTO) {
+    const user = await this.authService.signup(signupDto);
     return {
       status: 'success',
       message: 'User registered successfully',
@@ -39,17 +39,18 @@ export class AuthController {
   ) {
     const { user, tokens } = await this.authService.login(loginDto);
 
+    const isProd = process.env.NODE_ENV === 'production';
+    const cookieOptions: CookieOptions = {
+      httpOnly: false,
+      secure: isProd,
+      sameSite: isProd ? 'none' : 'lax',
+    };
     response.cookie('access_token', tokens.accessToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      ...cookieOptions,
       maxAge: 15 * 60 * 1000,
     });
-
     response.cookie('refresh_token', tokens.refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      ...cookieOptions,
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 

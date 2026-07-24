@@ -12,7 +12,7 @@ export interface Product {
 
   status: ProductStatus;
 
-  ownerId: string;
+  userId: string;
 
   createdAt: Date;
   updatedAt: Date;

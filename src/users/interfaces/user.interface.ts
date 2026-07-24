@@ -1,12 +1,3 @@
-import { UserRole } from '../enums/user-role.enum';
-
-export interface User {
-  id: string;
-  name: string;
-  email: string;
-  password: string;
-  role: UserRole;
-  createdAt: Date;
-}
+import { User } from '../entities/user.entity';
 
 export type UserResponse = Omit<User, 'password'>;

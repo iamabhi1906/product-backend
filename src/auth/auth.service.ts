@@ -4,14 +4,14 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { SignupDTO } from './dto/signup.dto';
-import { User, UserResponse } from '../users/interfaces/user.interface';
+import { UserResponse } from '../users/interfaces/user.interface';
 import { UsersService } from '../users/users.service';
-import { randomUUID } from 'crypto';
 import { UserRole } from '../users/enums/user-role.enum';
 import { LoginDTO } from './dto/login.dto';
 import { JwtService, JwtSignOptions } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { JwtPayload } from './interfaces/jwt-payload.interface';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class AuthService {
@@ -21,35 +21,38 @@ export class AuthService {
     private readonly configService: ConfigService,
   ) {}
 
-  signup(signupDto: SignupDTO): UserResponse {
+  async signup(signupDto: SignupDTO): Promise<UserResponse> {
     const { email } = signupDto;
-    const existingUser = this.usersService.findByEmail(email);
+    const existingUser = await this.usersService.findByEmail(email);
     if (existingUser) {
       throw new ConflictException('User already exists');
     }
-    const payload: User = {
-      id: randomUUID(),
+    const hashedPassword = await bcrypt.hash(signupDto.password, 10);
+    const newUser = await this.usersService.create({
       ...signupDto,
-      role: UserRole.USER,
-      createdAt: new Date(),
+      password: hashedPassword,
+      role: signupDto.role ?? UserRole.USER,
+    });
+
+    return {
+      id: newUser.id,
+      name: newUser.name,
+      email: newUser.email,
+      role: newUser.role,
+      isBlocked: newUser.isBlocked,
+      createdAt: newUser.createdAt,
     };
-    this.usersService.create(payload);
-    const response: UserResponse = {
-      id: payload.id,
-      name: payload.name,
-      email: payload.email,
-      role: payload.role,
-      createdAt: payload.createdAt,
-    };
-    return response;
   }
 
   async login(loginDto: LoginDTO) {
-    const user = this.usersService.findByEmail(loginDto.email);
+    const user = await this.usersService.findByEmail(loginDto.email);
     if (!user) {
       throw new UnauthorizedException('Invalid email or password');
     }
-    const isPasswordValid = user.password === loginDto.password;
+    const isPasswordValid = await bcrypt.compare(
+      loginDto.password,
+      user.password,
+    );
     if (!isPasswordValid) {
       throw new UnauthorizedException('Invalid email or password');
     }
@@ -58,6 +61,7 @@ export class AuthService {
       name: user.name,
       email: user.email,
       role: user.role,
+      isBlocked: user.isBlocked,
       createdAt: user.createdAt,
     };
     const tokens = await this.generateTokens(user.id, user.role);
@@ -67,21 +71,18 @@ export class AuthService {
     };
   }
 
-  private async generateTokens(userId: string, role: UserRole) {
+  private async generateTokens(userId: number, role: UserRole) {
     const payload = { sub: userId, role };
     const accessExpiresIn = this.configService.getOrThrow<
       JwtSignOptions['expiresIn']
     >('JWT_ACCESS_EXPIRES_IN');
-
     const refreshExpiresIn = this.configService.getOrThrow<
       JwtSignOptions['expiresIn']
     >('JWT_REFRESH_EXPIRES_IN');
-
     const [accessToken, refreshToken] = await Promise.all([
       this.jwtService.signAsync(payload, {
         expiresIn: accessExpiresIn,
       }),
-
       this.jwtService.signAsync(payload, {
         expiresIn: refreshExpiresIn,
       }),
@@ -93,7 +94,7 @@ export class AuthService {
     try {
       const payload =
         await this.jwtService.verifyAsync<JwtPayload>(refreshToken);
-      const user = this.usersService.findById(payload.sub);
+      const user = await this.usersService.findById(payload.sub);
       if (!user) {
         throw new UnauthorizedException('User no longer exists');
       }
@@ -104,8 +105,8 @@ export class AuthService {
     }
   }
 
-  getMe(userId: string): UserResponse {
-    const user = this.usersService.findById(userId);
+  async getMe(userId: string): Promise<UserResponse> {
+    const user = await this.usersService.findById(userId);
     if (!user) {
       throw new UnauthorizedException('User not found');
     }
@@ -114,6 +115,7 @@ export class AuthService {
       name: user.name,
       email: user.email,
       role: user.role,
+      isBlocked: user.isBlocked,
       createdAt: user.createdAt,
     };
   }

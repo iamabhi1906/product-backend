@@ -16,6 +16,7 @@ export class JwtAuthGuard implements CanActivate {
     const request = context.switchToHttp().getRequest<Request>();
     const cookies = request.cookies as Record<string, unknown>;
     const token = cookies.access_token;
+    // console.log('Token received:- ', token);
     if (typeof token !== 'string') {
       throw new UnauthorizedException('Authentication required');
     }
