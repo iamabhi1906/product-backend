@@ -9,6 +9,11 @@ import { validateEnv } from './config/env.validation';
 import { AdminModule } from './admin/admin.module';
 import { postgresTypeOrmConfig } from './config/typeorm.config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { AddressesModule } from './addresses/addresses.module';
+import { CartModule } from './cart/cart.module';
+import { OrdersModule } from './orders/orders.module';
+import { PromosModule } from './promos/promos.module';
+import { ReviewsModule } from './reviews/reviews.module';
 
 @Module({
   imports: [
@@ -21,6 +26,11 @@ import { TypeOrmModule } from '@nestjs/typeorm';
     AuthModule,
     UsersModule,
     AdminModule,
+    AddressesModule,
+    CartModule,
+    OrdersModule,
+    PromosModule,
+    ReviewsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

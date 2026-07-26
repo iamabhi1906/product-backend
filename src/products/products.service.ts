@@ -51,7 +51,7 @@ export class ProductsService {
 
   async findPublishedById(id: string): Promise<Product> {
     const product = await this.productRepository.findOne({
-      where: { id: Number(id) },
+      where: { id: Number(id), status: ProductStatus.PUBLISHED },
       relations: { user: true },
       select: {
         id: true,
@@ -102,10 +102,11 @@ export class ProductsService {
     updateProductDto: UpdateProductDTO,
   ): Promise<Product> {
     if (updateProductDto?.title) {
-      const existingProduct = await this.productRepository.find({
-        where: { title: updateProductDto.title },
+      const existingProduct = await this.productRepository.findOneBy({
+        title: updateProductDto.title,
+        userId: Number(userId),
       });
-      if (existingProduct.length > 0) {
+      if (existingProduct && existingProduct.id !== Number(id)) {
         throw new ConflictException(
           `Product with title ${updateProductDto.title} already exists`,
         );
@@ -146,7 +147,6 @@ export class ProductsService {
 
   async adminDeleteProduct(id: string) {
     const product = await this.getProductById(id);
-    if (product) throw new NotFoundException(`Product with id:${id} not found`);
     return this.productRepository.remove(product);
   }
 }

@@ -40,6 +40,8 @@ export class AuthService {
       email: newUser.email,
       role: newUser.role,
       isBlocked: newUser.isBlocked,
+      phone: newUser.phone,
+      avatar: newUser.avatar,
       createdAt: newUser.createdAt,
     };
   }
@@ -56,12 +58,17 @@ export class AuthService {
     if (!isPasswordValid) {
       throw new UnauthorizedException('Invalid email or password');
     }
+    if (user.isBlocked) {
+      throw new UnauthorizedException('Your account has been blocked');
+    }
     const response: UserResponse = {
       id: user.id,
       name: user.name,
       email: user.email,
       role: user.role,
       isBlocked: user.isBlocked,
+      phone: user.phone,
+      avatar: user.avatar,
       createdAt: user.createdAt,
     };
     const tokens = await this.generateTokens(user.id, user.role);
@@ -116,6 +123,8 @@ export class AuthService {
       email: user.email,
       role: user.role,
       isBlocked: user.isBlocked,
+      phone: user.phone,
+      avatar: user.avatar,
       createdAt: user.createdAt,
     };
   }

@@ -41,7 +41,7 @@ export class AuthController {
 
     const isProd = process.env.NODE_ENV === 'production';
     const cookieOptions: CookieOptions = {
-      httpOnly: false,
+      httpOnly: true,
       secure: isProd,
       sameSite: isProd ? 'none' : 'lax',
     };

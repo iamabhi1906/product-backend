@@ -26,6 +26,12 @@ export class User {
   @Column({ default: false })
   isBlocked!: boolean;
 
+  @Column({ type: 'varchar', nullable: true })
+  phone!: string | null;
+
+  @Column({ type: 'varchar', nullable: true })
+  avatar!: string | null;
+
   @CreateDateColumn()
   createdAt!: Date;
 }
