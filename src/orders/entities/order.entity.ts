@@ -1,4 +1,12 @@
-import { Column, CreateDateColumn, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  JoinColumn,
+  ManyToOne,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
+} from 'typeorm';
 import { OrderStatus } from '../enums/order-status.enum';
 import { User } from '../../users/entities/user.entity';
 
@@ -30,7 +38,7 @@ export class Order {
   @Column()
   productTitle!: string;
 
-  @Column({ type: 'numeric', precision: 12, scale: 2 })
+  @Column({ type: 'numeric' })
   productPrice!: number;
 
   @Column('simple-array')
@@ -39,7 +47,7 @@ export class Order {
   @Column({ type: 'integer' })
   quantity!: number;
 
-  @Column({ type: 'numeric', precision: 12, scale: 2, default: 0 })
+  @Column({ type: 'numeric', default: 0 })
   discount!: number;
 
   @Column({ type: 'enum', enum: OrderStatus, default: OrderStatus.CREATED })

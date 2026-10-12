@@ -41,6 +41,8 @@ export class ProductsService {
         title: true,
         price: true,
         category: true,
+        stock: true,
+        productImages: true,
         user: {
           name: true,
           email: true,
@@ -56,8 +58,11 @@ export class ProductsService {
       select: {
         id: true,
         title: true,
+        description: true,
         price: true,
         category: true,
+        stock: true,
+        productImages: true,
         user: {
           name: true,
           email: true,
